@@ -37,7 +37,8 @@ async function loadAds(){
  try{
   const data=await request("GET");const ads=Array.isArray(data.ads)?data.ads:[];
   $("status").textContent=ads.length+" vidéo(s) en attente.";
-  $("ads").innerHTML=ads.map(a=>'<article class="card"><h3>'+esc(a.title)+'</h3><p class="small">Durée achetée : '+Number(a.days)+' jour(s) · Identifiant : '+esc(a.id)+'</p><iframe src="https://www.youtube-nocookie.com/embed/'+encodeURIComponent(a.videoId)+'" title="'+esc(a.title)+'" allowfullscreen loading="lazy"></iframe><div><button onclick="moderate(\''+esc(a.id)+'\',\'approve\')">Approuver et publier</button><button class="reject" onclick="moderate(\''+esc(a.id)+'\',\'reject\')">Refuser</button></div></article>').join("")||"<p>Aucune vidéo à modérer.</p>";
+  $("ads").innerHTML=ads.map(a=>'<article class="card"><h3>'+esc(a.title)+'</h3><p class="small">Durée achetée : '+Number(a.days)+' jour(s) · Identifiant : '+esc(a.id)+'</p><iframe src="https://www.youtube-nocookie.com/embed/'+encodeURIComponent(a.videoId)+'" title="'+esc(a.title)+'" allowfullscreen loading="lazy"></iframe><div><button data-id="'+esc(a.id)+'" data-action="approve">Approuver et publier</button><button class="reject" data-id="'+esc(a.id)+'" data-action="reject">Refuser</button></div></article>').join("")||"<p>Aucune vidéo à modérer.</p>";
+  document.querySelectorAll("[data-action]").forEach(button=>button.addEventListener("click",()=>moderate(button.dataset.id,button.dataset.action)));
  }catch(e){$("status").textContent=e.message;}
 }
 async function moderate(id,action){
