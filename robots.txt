@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://codequeststudio.netlify.app/sitemap.xml

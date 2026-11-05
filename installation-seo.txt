@@ -1,0 +1,19 @@
+CODEQUEST - INSTALLATION SEO GOOGLE
+
+1) Extraire le ZIP.
+2) Dans Netlify, ouvrir le site CodeQuest > Deploys.
+3) Déposer le contenu de ce dossier (index.html, app.js, data.js, assets/, robots.txt, sitemap.xml et les 3 pages HTML) dans la zone de déploiement manuel. Ne pas déposer uniquement index.html : il faut garder tous les fichiers existants.
+4) Attendre que le déploiement soit publié.
+5) Tester ces adresses dans le navigateur :
+   https://codequeststudio.netlify.app/robots.txt
+   https://codequeststudio.netlify.app/sitemap.xml
+   https://codequeststudio.netlify.app/apprendre-python.html
+   https://codequeststudio.netlify.app/apprendre-html-css.html
+   https://codequeststudio.netlify.app/apprendre-javascript.html
+6) Ouvrir https://search.google.com/search-console et ajouter une propriété de type Préfixe d'URL :
+   https://codequeststudio.netlify.app/
+7) Choisir la méthode de validation par fichier HTML ou balise HTML. Si Google fournit une balise meta, la placer dans la section <head> de index.html, redéployer, puis cliquer sur Valider. Si Google fournit un fichier HTML, l'ajouter à la racine du site puis redéployer.
+8) Dans Search Console > Sitemaps, envoyer : sitemap.xml
+9) Dans Inspection de l'URL, saisir https://codequeststudio.netlify.app/ puis cliquer sur Demander une indexation.
+
+IMPORTANT : Netlify n'empêche pas l'indexation Google. Le sitemap et les métadonnées aident Google à découvrir et comprendre les pages, mais ne garantissent pas leur classement. L'indexation peut prendre plusieurs jours ou semaines. Les pages ont été écrites pour être accessibles sans JavaScript.
