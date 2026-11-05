@@ -764,6 +764,18 @@ function paintStep(){
   }
 
   const s=ST[SI],lang=MODE==='sty'?SW.lang:CL;
+  // Mélanger chaque QCM une seule fois, en gardant chaque réponse liée à son statut correct.
+  // Le marqueur évite un nouveau mélange lors d'un rafraîchissement ou d'une reprise.
+  if (s.k === 'm' && Array.isArray(s.o) && !s._cqChoicesShuffled) {
+    const choices = s.o.map((text, index) => ({ text, correct: index === Number(s.a) }));
+    for (let i = choices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [choices[i], choices[j]] = [choices[j], choices[i]];
+    }
+    s.o = choices.map(choice => choice.text);
+    s.a = choices.findIndex(choice => choice.correct);
+    s._cqChoicesShuffled = true;
+  }
   paintHdr();
 
   if (MODE === 'sty') {
