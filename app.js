@@ -650,6 +650,7 @@ $('h-chest').innerHTML=chestReady()
 $('h-chest').innerHTML+=adBtn('margin-bottom:.4rem');
 $('h-langs').innerHTML=LANGS.map(l=>{const d=(P.dn[l.id]||[]).filter(v=>v>0).length;
 return `<div class="lg" onclick="pickLang('${l.id}')">${monoT(l)}<div class="lg-n">${l.n}</div><div class="lg-p">${d}/${NLV(l.id)} niveaux</div><button class="btn-lh-badge" onclick="event.stopPropagation();openLangHistory('${l.id}')" title="Histoire et anecdotes de ${l.n}">${ic('i-book')} Histoire</button></div>`}).join('');
+renderSponsoredAds();
 paintNav()}
 /* ---------- LEVELS ---------- */
 const locked=(l,i)=>i>0&&!(P.dn[l]||[])[i-1];
@@ -1377,6 +1378,29 @@ return `<button class="avi${id===P.a?' on':''}" title="${a.n} · ${RAR[a.r].n}" 
 window.PA=P.a;$('m-av').classList.add('on')}
 function pickAv(el,id){document.querySelectorAll('#m-av-g .avi').forEach(e=>e.classList.remove('on'));el.classList.add('on');window.PA=id;sfx('click')}
 function setAv(){if(window.PA){P.a=window.PA;save();sfx('fanfare');rAcc();rHome();toast('Robot équipé !','s','i-check')}cl('m-av')}
+/* Publicités vidéo payées et approuvées */
+let CQ_ADS_CACHE = [], CQ_ADS_FETCHED_AT = 0;
+async function renderSponsoredAds(force = false) {
+  const host = $('h-langs');
+  if (!host) return;
+  let slot = $('cq-sponsored-slot');
+  if (!slot) { slot = document.createElement('div'); slot.id = 'cq-sponsored-slot'; host.parentNode.insertBefore(slot, host); }
+  if (force || Date.now() - CQ_ADS_FETCHED_AT > 60000) {
+    try {
+      const res = await fetch('/api/active-ads', { cache: 'no-store' });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.ads)) CQ_ADS_CACHE = data.ads;
+      CQ_ADS_FETCHED_AT = Date.now();
+    } catch (e) {}
+  }
+  const valid = CQ_ADS_CACHE.filter(a => a && /^[A-Za-z0-9_-]{11}$/.test(a.videoId));
+  slot.innerHTML = valid.map(a => `<article class="card" style="margin:0 0 1rem;border:1px solid var(--nn)">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.6rem"><b>${esc(a.title || 'Vidéo')}</b><span class="badge" style="background:var(--nn);color:#06121a">Sponsorisé</span></div>
+    <div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#05070e">
+      <iframe src="https://www.youtube-nocookie.com/embed/${a.videoId}" title="${esc(a.title || 'Vidéo sponsorisée')}" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+    </div>
+  </article>`).join('');
+}
 /* ---------- SHOP ---------- */
 function rShop(){const d=dailyShop(),tm=new Date(Date.now()+864e5).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
 $('shop-body').innerHTML=`<div class="hd"><h2>Boutique</h2><span class="pill c">${ic('i-coin')}${P.cd}</span></div>
@@ -1424,7 +1448,9 @@ return `<div class="dc"><i class="tp"></i>${avSVG(a.id,56)}
   {id:'pack_1500',  codes:1500,  prix:'2,49 €', best:false},
   {id:'pack_3000',  codes:3000,  prix:'4,99 €', best:true },
   {id:'pack_7000',  codes:7000,  prix:'9,99 €', best:false},
-  {id:'pack_15000', codes:15000, prix:'19,99 €', best:false}
+  {id:'pack_15000', codes:15000, prix:'19,99 €', best:false},
+  {id:'pack_30000', codes:30000, prix:'34,99 €', best:false},
+  {id:'pack_50000', codes:50000, prix:'49,99 €', best:false}
 ].map(pk=>`<div class="pc${pk.best?' bst':''}">
   ${pk.best?'<div class="bst-lbl">⭐ Meilleur rapport</div>':''}
   <div class="pc-c">${ic('i-coin')}${pk.codes.toLocaleString('fr-FR')}</div>
@@ -1435,7 +1461,19 @@ return `<div class="dc"><i class="tp"></i>${avSVG(a.id,56)}
 <p class="mut" style="font-size:.7rem;text-align:center;margin-top:.7rem">
   Paiement sécurisé par Stripe · codes promo acceptés directement lors du paiement.<br>
   ${STRIPE_ENABLED?'':'<b>Mode démo</b> — active Stripe dans la config pour encaisser.'}
-</p>`}
+</p>
+<div class="card" style="margin-top:1.2rem;border:1px solid var(--nn);background:linear-gradient(145deg,rgba(34,211,238,.08),rgba(124,58,237,.08))">
+  <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.45rem"><div style="font-size:1.7rem">📺</div><div><b style="font-size:1rem">Faire connaître ta vidéo</b><div class="mut" style="font-size:.74rem">Ta vidéo YouTube peut apparaître sur l'accueil de CodeQuest.</div></div></div>
+  <label class="lbl" for="cq-ad-title">Titre de la publicité</label>
+  <input class="inp" id="cq-ad-title" maxlength="60" placeholder="Ex : Découvre ma chaîne !">
+  <label class="lbl" for="cq-ad-url" style="margin-top:.6rem">Lien de ta vidéo YouTube</label>
+  <input class="inp" id="cq-ad-url" type="url" placeholder="https://youtu.be/xxxxxxxxxxx">
+  <label class="lbl" for="cq-ad-plan" style="margin-top:.6rem">Durée et prix</label>
+  <select class="inp" id="cq-ad-plan"><option value="ad_1">1 jour — 2,99 €</option><option value="ad_7">7 jours — 9,99 €</option><option value="ad_30">30 jours — 24,99 €</option></select>
+  <button class="btn p w" style="margin-top:.8rem" onclick="buyVideoAd()">▶ Payer et proposer ma vidéo</button>
+  <p class="mut" style="font-size:.68rem;margin:.6rem 0 0">Paiement sécurisé. La vidéo est vérifiée avant d'être affichée. Seuls les liens YouTube sont acceptés pour le moment.</p>
+</div>
+`}
 const PROMO_CODES = {
   'CODEQUEST': { codes: 500, desc: 'Pack découverte CodeQuest' },
   'DEV2026':   { codes: 300, desc: 'Bonus développeur 2026' },
@@ -2560,6 +2598,28 @@ async function buyPack(packId) {
     if (btn) { btn.disabled = false; btn.textContent = 'Acheter'; }
   }
 }
+/* Proposer une vidéo YouTube pour une mise en avant payante */
+async function buyVideoAd() {
+  const title = ($('cq-ad-title')?.value || '').trim();
+  const videoUrl = ($('cq-ad-url')?.value || '').trim();
+  const planId = $('cq-ad-plan')?.value || 'ad_1';
+  if (!P.u) { toast("Crée ton profil avant de proposer une publicité.", 'e', 'i-user'); go('acc'); rAcc(); return; }
+  if (!title || !videoUrl) { toast("Ajoute un titre et le lien YouTube.", 'w', 'i-warn'); return; }
+  try {
+    const btn = document.querySelector('button[onclick="buyVideoAd()"]');
+    if (btn) { btn.disabled = true; btn.textContent = "Préparation…"; }
+    const data = await apiJson('/api/create-ad-checkout', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, videoUrl, planId, uid: cqUid(), email: (window.GU && window.GU.email) || null })
+    });
+    if (!data.url) throw new Error(data.error || "paiement indisponible");
+    location.href = data.url;
+  } catch (err) {
+    toast("Erreur : " + err.message, 'e', 'i-warn');
+    const btn = document.querySelector('button[onclick="buyVideoAd()"]');
+    if (btn) { btn.disabled = false; btn.textContent = "▶ Payer et proposer ma vidéo"; }
+  }
+}
 /* Vérifier un paiement Stripe au retour sur l'app (avec reprise si le réseau a coupé) */
 async function checkStripeReturn() {
   const params = new URLSearchParams(location.search);
@@ -2575,7 +2635,11 @@ async function checkStripeReturn() {
   if (!sid) return;
   try {
     const data = await apiJson('/api/verify-payment?session_id=' + encodeURIComponent(sid) + '&uid=' + encodeURIComponent(cqUid()));
-    if (data.paid && data.codes > 0) {
+    if (data.paid && data.adSubmitted) {
+      toast(data.message || "Vidéo reçue : elle attend la modération.", 's', 'i-check');
+      localStorage.removeItem('cq_pending_sid');
+      if (typeof renderSponsoredAds === 'function') renderSponsoredAds(true);
+    } else if (data.paid && data.codes > 0) {
       const done = JSON.parse(localStorage.getItem('cq_paid_sessions') || '[]');
       if (!done.includes(sid)) {
         done.push(sid);
