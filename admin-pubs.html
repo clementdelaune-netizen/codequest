@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Modération des publicités — CodeQuest</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,Arial,sans-serif;background:#080d18;color:#eef4ff}
+body{max-width:850px;margin:0 auto;padding:24px 16px}
+h1{font-size:1.6rem}p{color:#aab8ce;line-height:1.5}
+input{box-sizing:border-box;width:100%;padding:12px;border-radius:10px;border:1px solid #33415c;background:#111b2c;color:#fff;margin:8px 0}
+button{padding:10px 14px;border:0;border-radius:9px;background:#22d3ee;color:#07111b;font-weight:800;cursor:pointer;margin:4px}
+button.reject{background:#f87171}button:disabled{opacity:.5;cursor:wait}
+.card{background:#111b2c;border:1px solid #2b3b56;border-radius:14px;padding:16px;margin:14px 0}
+iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:10px}
+.small{font-size:.85rem;color:#9aabc4}
+#status{margin:12px 0;color:#7dd3fc}
+</style>
+</head>
+<body>
+<h1>🛡️ Modération des publicités CodeQuest</h1>
+<p>Page réservée à l'administrateur. Colle la clé <b>ADMIN_AD_SECRET</b> configurée dans les variables d'environnement Netlify. Ne partage jamais cette clé.</p>
+<input id="secret" type="password" autocomplete="off" placeholder="Clé secrète administrateur">
+<button onclick="loadAds()">Afficher les vidéos en attente</button>
+<div id="status"></div>
+<div id="ads"></div>
+<script>
+const $=id=>document.getElementById(id);
+function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+async function request(method,body){
+ const key=$("secret").value.trim();if(!key)throw new Error("Entre la clé administrateur.");
+ const res=await fetch("/api/admin-ads",{method,headers:{"Content-Type":"application/json","x-admin-key":key},body:body?JSON.stringify(body):undefined});
+ const data=await res.json();if(!res.ok)throw new Error(data.error||"Erreur serveur");return data;
+}
+async function loadAds(){
+ $("status").textContent="Chargement…";
+ try{
+  const data=await request("GET");const ads=Array.isArray(data.ads)?data.ads:[];
+  $("status").textContent=ads.length+" vidéo(s) en attente.";
+  $("ads").innerHTML=ads.map(a=>'<article class="card"><h3>'+esc(a.title)+'</h3><p class="small">Durée achetée : '+Number(a.days)+' jour(s) · Identifiant : '+esc(a.id)+'</p><iframe src="https://www.youtube-nocookie.com/embed/'+encodeURIComponent(a.videoId)+'" title="'+esc(a.title)+'" allowfullscreen loading="lazy"></iframe><div><button onclick="moderate(\''+esc(a.id)+'\',\'approve\')">Approuver et publier</button><button class="reject" onclick="moderate(\''+esc(a.id)+'\',\'reject\')">Refuser</button></div></article>').join("")||"<p>Aucune vidéo à modérer.</p>";
+ }catch(e){$("status").textContent=e.message;}
+}
+async function moderate(id,action){
+ try{await request("POST",{id,action});$("status").textContent=action==="approve"?"Vidéo approuvée et publiée pour sa durée payée.":"Vidéo refusée.";await loadAds();}
+ catch(e){$("status").textContent=e.message;}
+}
+</script>
+</body>
+</html>
